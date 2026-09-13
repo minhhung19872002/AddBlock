@@ -2,5 +2,6 @@
 <resources>
     <string name="app_name">Bỏ Qua Quảng Cáo</string>
     <string name="accessibility_service_label">Bỏ Qua Quảng Cáo — tự bấm nút Bỏ qua</string>
+    <string name="black_screen_tile_label">Màn hình đen</string>
     <string name="accessibility_service_description">Theo dõi màn hình YouTube và tự động bấm nút \"Bỏ qua\" khi quảng cáo xuất hiện. Ứng dụng không đọc, không lưu và không gửi đi bất kỳ nội dung nào trên màn hình.</string>
 </resources>

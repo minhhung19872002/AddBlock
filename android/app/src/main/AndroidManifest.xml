@@ -53,6 +53,21 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!--
+            Nút "Màn hình đen" trong thanh cài đặt nhanh: phủ đen màn hình để
+            nghe YouTube như lúc tắt màn hình mà video không bị dừng.
+        -->
+        <service
+            android:name=".BlackScreenTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_black_screen"
+            android:label="@string/black_screen_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

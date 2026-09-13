@@ -34,6 +34,14 @@ class GuideCard extends StatelessWidget {
             title: 'Mở YouTube và xem bình thường',
             detail: 'Không cần mở lại app này. Nút "Bỏ qua" hiện ra là được bấm ngay.',
           ),
+          const SizedBox(height: 14),
+          const _Step(
+            number: '4',
+            title: 'Nghe YouTube khi "tắt màn hình"',
+            detail: 'Bấm nút nguồn thì YouTube sẽ dừng. Thay vào đó, kéo thanh thông báo '
+                'xuống và bấm nút "Màn hình đen" (thêm nút này bằng biểu tượng bút chì). '
+                'Màn hình tối hẳn mà video vẫn phát. Chạm 2 lần để mở lại.',
+          ),
           const SizedBox(height: 18),
           Row(
             children: <Widget>[

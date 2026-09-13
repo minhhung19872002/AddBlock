@@ -111,11 +111,14 @@ object SkipTargets {
         "廣告",
     )
 
-    /** Resource-id của nút X đóng banner quảng cáo dán ở đáy trình phát. */
+    /**
+     * Resource-id của nút X đóng banner quảng cáo dán ở đáy trình phát.
+     *
+     * Chỉ giữ id có chữ "ad": "close_button" chung chung chính là nút X của
+     * trình phát thu nhỏ — bấm vào là đóng luôn video người dùng đang xem.
+     */
     val CLOSE_VIEW_IDS = listOf(
         "ad_close_button",
-        "close_button",
-        "dismiss_button",
         "ad_dismiss_button",
     )
 

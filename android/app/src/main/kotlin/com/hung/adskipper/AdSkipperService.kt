@@ -31,9 +31,16 @@ class AdSkipperService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private val settings: SkipSettings by lazy { SkipSettings(this) }
     private val muter: AdMuter by lazy { AdMuter(this) }
+    private val blackScreen: BlackScreenOverlay by lazy { BlackScreenOverlay(this) }
 
     /** Gói ứng dụng đang hiển thị, cập nhật từ sự kiện WINDOW_STATE_CHANGED. */
     private var foregroundPackage: String = ""
+
+    /** Dấu hiệu gần nhất cho biết đang có quảng cáo, chỉ để ghi log. */
+    private var lastAdMarker = ""
+
+    /** Trước mốc này không tắt tiếng lại (vừa bấm "Bỏ qua" xong). */
+    private var muteGraceUntil = 0L
 
     private var lastClickAt = 0L
     private var lastScanAt = 0L
@@ -51,6 +58,7 @@ class AdSkipperService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         isRunning = true
+        instance = this
         SkipLog.add(SkipLog.KIND_SERVICE_ON, "", "")
         Log.i(TAG, "AdSkipperService đã kết nối")
         scheduleNextScan()
@@ -82,6 +90,8 @@ class AdSkipperService : AccessibilityService() {
 
     override fun onDestroy() {
         isRunning = false
+        if (instance === this) instance = null
+        blackScreen.hide()
         handler.removeCallbacksAndMessages(null)
         // Tuyệt đối không để người dùng ở lại với cái máy câm.
         releaseMute()
@@ -128,6 +138,7 @@ class AdSkipperService : AccessibilityService() {
         foregroundPackage = pkg
 
         val found = inspect(root, pkg)
+        lastAdMarker = found.adMarker
 
         // Tắt tiếng được xử lý trước, và không bị chặn bởi thời gian nghỉ giữa
         // hai lần bấm — vì đây chính là đoạn nút "Bỏ qua" chưa hiện ra.
@@ -140,12 +151,31 @@ class AdSkipperService : AccessibilityService() {
             // Bỏ qua xong là video thật chạy ngay — trả tiếng lại luôn, không
             // chờ tới lượt quét sau.
             releaseMute()
+            muteGraceUntil = SystemClock.uptimeMillis() + MUTE_GRACE_AFTER_SKIP_MS
             return
         }
 
         val closeNode = found.closeNode
         if (settings.closeOverlayAds && closeNode != null) {
             tryClick(closeNode, SkipLog.KIND_CLOSE, found.closeLabel, pkg)
+        }
+    }
+
+    /**
+     * Bật/tắt màn hình đen. Gọi từ nút trong thanh cài đặt nhanh, nên phải thu
+     * thanh đó lại trước — không thì lớp phủ nằm lẫn dưới thanh thông báo.
+     */
+    fun toggleBlackScreen() {
+        if (!blackScreen.isShowing) {
+            val collapse = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE
+            } else {
+                GLOBAL_ACTION_BACK
+            }
+            performGlobalAction(collapse)
+            handler.postDelayed({ blackScreen.show() }, SHADE_COLLAPSE_DELAY_MS)
+        } else {
+            blackScreen.hide()
         }
     }
 
@@ -166,7 +196,11 @@ class AdSkipperService : AccessibilityService() {
             return
         }
         if (adVisible) {
+            // Ngay sau khi bấm "Bỏ qua", cây giao diện còn giữ nút cũ thêm vài
+            // trăm ms — đừng vì thế mà câm mất đầu video thật.
+            if (SystemClock.uptimeMillis() < muteGraceUntil) return
             if (muter.mute()) {
+                Log.i(TAG, "Tắt tiếng: thấy quảng cáo nhờ '$lastAdMarker'")
                 isMuted = true
                 SkipLog.add(SkipLog.KIND_MUTE, "", foregroundPackage)
             }
@@ -185,6 +219,7 @@ class AdSkipperService : AccessibilityService() {
     /** Kết quả của một lượt soi màn hình. */
     private class Inspection {
         var adVisible = false
+        var adMarker: String = ""
         var skipNode: AccessibilityNodeInfo? = null
         var skipLabel: String = ""
         var closeNode: AccessibilityNodeInfo? = null
@@ -232,6 +267,7 @@ class AdSkipperService : AccessibilityService() {
                         result.skipNode = node
                         result.skipLabel = viewId
                         result.adVisible = true
+                        result.adMarker = "id:$viewId"
                     }
                     if (result.closeNode == null && settings.closeOverlayAds && viewId in CLOSE_IDS) {
                         result.closeNode = node
@@ -239,6 +275,7 @@ class AdSkipperService : AccessibilityService() {
                     }
                     if (!result.adVisible && settings.muteDuringAds && viewId in AD_MARKER_IDS) {
                         result.adVisible = true
+                        result.adMarker = "id:$viewId"
                     }
                 }
 
@@ -250,6 +287,7 @@ class AdSkipperService : AccessibilityService() {
                             result.skipNode = node
                             result.skipLabel = hit
                             result.adVisible = true
+                            result.adMarker = "nhãn:$hit"
                         }
                     }
                     // Nút đóng nhận theo nhãn thì bắt buộc phải nằm trong một
@@ -270,6 +308,7 @@ class AdSkipperService : AccessibilityService() {
                         label.any { it in adLabels } && !isInsideScrollable(node)
                     ) {
                         result.adVisible = true
+                        result.adMarker = "nhãn:${label.first { it in adLabels }}"
                     }
                 }
             }
@@ -419,6 +458,13 @@ class AdSkipperService : AccessibilityService() {
         private const val TAP_DURATION_MS = 60L
         private const val IDLE_AFTER_MISSES = 5
         private const val IDLE_SCAN_INTERVAL_MS = 3000L
+        private const val MUTE_GRACE_AFTER_SKIP_MS = 1500L
+        private const val SHADE_COLLAPSE_DELAY_MS = 400L
+
+        /** Service đang chạy, để nút trong thanh cài đặt nhanh gọi tới. */
+        @Volatile
+        var instance: AdSkipperService? = null
+            private set
 
         /** Không bao giờ để máy câm quá lâu, kể cả khi nhận diện sai. */
         private const val MAX_MUTE_MS = 90_000L
