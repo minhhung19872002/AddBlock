@@ -1,0 +1,8 @@
+# Tệp do Flutter quản lý, dùng để theo dõi thuộc tính của dự án.
+# KHÔNG chỉnh sửa thủ công.
+
+version:
+  revision: null
+  channel: stable
+
+project_type: app
