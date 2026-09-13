@@ -74,6 +74,7 @@ class HomePage extends StatelessWidget {
             GuideCard(
               onOpenAccessibility: controller.openAccessibilitySettings,
               onOpenBattery: controller.openBatterySettings,
+              onAddBlackScreenTile: controller.requestAddBlackScreenTile,
             ),
           ],
         ),

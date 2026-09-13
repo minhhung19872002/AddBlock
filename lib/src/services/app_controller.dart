@@ -110,6 +110,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> openAppInfo() => _channel.openAppInfo();
 
+  Future<bool> requestAddBlackScreenTile() => _channel.requestAddBlackScreenTile();
+
   @override
   void dispose() {
     _eventSubscription?.cancel();

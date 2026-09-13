@@ -32,6 +32,11 @@ class AdSkipperChannel {
   /// Mở trang "Thông tin ứng dụng" — nơi có mục "Cho phép cài đặt bị hạn chế".
   Future<void> openAppInfo() => _invoke<bool>('openAppInfo');
 
+  /// Nhờ hệ thống hiện hộp thoại thêm nút "Màn hình đen" vào Cài đặt nhanh.
+  /// Trả về false khi máy chạy Android 12 trở xuống (phải tự thêm tay).
+  Future<bool> requestAddBlackScreenTile() async =>
+      await _invoke<String>('requestAddBlackScreenTile') == 'requested';
+
   Future<SkipSettings> getSettings() => _settingsCall('getSettings');
 
   Future<SkipSettings> updateSettings(SkipSettings settings) =>

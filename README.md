@@ -101,6 +101,23 @@ flutter build apk --release # file nằm ở build/app/outputs/flutter-apk/
 Mỗi lần bấm được, app ghi lại một dòng trong mục **Hoạt động gần đây** — đó là
 cách nhanh nhất để kiểm chứng nó đang chạy thật.
 
+## Nghe YouTube khi "tắt màn hình"
+
+Bản YouTube miễn phí dừng phát khi màn hình tắt thật. Thay vào đó app phủ một
+lớp đen (overlay trợ năng) ở độ sáng thấp nhất: YouTube tưởng màn hình vẫn bật
+nên phát tiếp, quảng cáo vẫn được bỏ qua bên dưới. Chạm 2 lần để bỏ lớp phủ.
+
+Bật bằng nút **"Màn hình đen"** trong thanh Cài đặt nhanh (kéo thanh thông báo
+xuống). Android không tự gắn nút đó, nên:
+
+- **Android 13+**: mở app > mục *Hướng dẫn* > bấm **Thêm nút "Màn hình đen"**,
+  hệ thống sẽ hỏi và tự gắn.
+- **Android 12 trở xuống**: kéo thanh thông báo xuống hết cỡ, bấm biểu tượng
+  **bút chì** (Samsung: dấu ba chấm > *Chỉnh sửa nút*), rồi kéo nút "Màn hình
+  đen" từ danh sách bên dưới lên bảng.
+
+Nút chỉ hoạt động khi quyền Trợ năng đã bật — chưa bật thì nó mở app lên.
+
 ## Máy báo "Cài đặt hạn chế" / "Ứng dụng đã bị từ chối cấp quyền"
 
 Từ **Android 13**, hệ thống chặn mọi app cài ngoài Play Store bật quyền Trợ năng

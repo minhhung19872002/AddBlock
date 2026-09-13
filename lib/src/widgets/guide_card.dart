@@ -5,10 +5,18 @@ import 'section_card.dart';
 /// Hướng dẫn 3 bước, hiện ngay trên màn hình chính vì phần lớn người dùng sẽ
 /// khựng lại ở bước cấp quyền Trợ năng.
 class GuideCard extends StatelessWidget {
-  const GuideCard({super.key, required this.onOpenAccessibility, required this.onOpenBattery});
+  const GuideCard({
+    super.key,
+    required this.onOpenAccessibility,
+    required this.onOpenBattery,
+    required this.onAddBlackScreenTile,
+  });
 
   final VoidCallback onOpenAccessibility;
   final VoidCallback onOpenBattery;
+
+  /// Nhờ hệ thống thêm nút "Màn hình đen" vào thanh Cài đặt nhanh.
+  final Future<bool> Function() onAddBlackScreenTile;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +47,16 @@ class GuideCard extends StatelessWidget {
             number: '4',
             title: 'Nghe YouTube khi "tắt màn hình"',
             detail: 'Bấm nút nguồn thì YouTube sẽ dừng. Thay vào đó, kéo thanh thông báo '
-                'xuống và bấm nút "Màn hình đen" (thêm nút này bằng biểu tượng bút chì). '
-                'Màn hình tối hẳn mà video vẫn phát. Chạm 2 lần để mở lại.',
+                'xuống và bấm nút "Màn hình đen". Màn hình tối hẳn mà video vẫn phát. '
+                'Chạm 2 lần để mở lại.',
+          ),
+          const SizedBox(height: 12),
+          // Android không tự gắn nút vào Cài đặt nhanh, người dùng phải đồng ý.
+          OutlinedButton.icon(
+            onPressed: () => _addTile(context),
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            label: const Text('Thêm nút "Màn hình đen"'),
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
           ),
           const SizedBox(height: 18),
           Row(
@@ -69,6 +85,22 @@ class GuideCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _addTile(BuildContext context) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    if (await onAddBlackScreenTile()) return;
+    // Android 12 trở xuống không có API này — chỉ còn cách chỉ đường thủ công.
+    messenger.showSnackBar(
+      const SnackBar(
+        duration: Duration(seconds: 8),
+        content: Text(
+          'Máy này phải thêm tay: kéo thanh thông báo xuống hết cỡ, bấm biểu '
+          'tượng bút chì (hoặc dấu ba chấm > Chỉnh sửa nút), rồi kéo nút '
+          '"Màn hình đen" lên bảng.',
+        ),
       ),
     );
   }

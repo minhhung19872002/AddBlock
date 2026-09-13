@@ -1,16 +1,21 @@
 package com.hung.adskipper
 
+import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.drawable.Icon
+import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.net.Uri
 import android.provider.Settings
 import android.text.TextUtils
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executor
+import java.util.function.Consumer
 
 /**
  * Cầu nối giữa giao diện Flutter và AccessibilityService bên dưới.
@@ -43,6 +48,7 @@ class MainActivity : FlutterActivity() {
                         openAppInfo()
                         result.success(true)
                     }
+                    "requestAddBlackScreenTile" -> result.success(requestAddTile())
                     "getSettings" -> result.success(settings.toMap())
                     "updateSettings" -> {
                         (call.arguments as? Map<*, *>)?.let { settings.applyMap(it) }
@@ -114,6 +120,29 @@ class MainActivity : FlutterActivity() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { startActivity(intent) }
+    }
+
+    /**
+     * Nhờ hệ thống hiện hộp thoại "thêm nút vào Cài đặt nhanh" (Android 13+).
+     * Không có cách nào tự thêm nút mà không hỏi người dùng, nhưng ít nhất họ
+     * chỉ phải bấm một lần thay vì đi tìm trong danh sách chỉnh sửa.
+     *
+     * Trả về "requested" nếu đã hiện được hộp thoại, "unsupported" nếu máy chạy
+     * Android 12 trở xuống (phải tự thêm bằng biểu tượng bút chì).
+     */
+    private fun requestAddTile(): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return "unsupported"
+        val manager = getSystemService(StatusBarManager::class.java) ?: return "unsupported"
+        return runCatching {
+            manager.requestAddTileService(
+                ComponentName(this, BlackScreenTileService::class.java),
+                getString(R.string.black_screen_tile_label),
+                Icon.createWithResource(this, R.drawable.ic_black_screen),
+                Executor { it.run() },
+                Consumer<Int> { },
+            )
+            "requested"
+        }.getOrDefault("unsupported")
     }
 
     /**
