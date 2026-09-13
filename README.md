@@ -101,6 +101,32 @@ flutter build apk --release # file nằm ở build/app/outputs/flutter-apk/
 Mỗi lần bấm được, app ghi lại một dòng trong mục **Hoạt động gần đây** — đó là
 cách nhanh nhất để kiểm chứng nó đang chạy thật.
 
+## Máy báo "Cài đặt hạn chế" / "Ứng dụng đã bị từ chối cấp quyền"
+
+Từ **Android 13**, hệ thống chặn mọi app cài ngoài Play Store bật quyền Trợ năng
+— vì đây đúng là quyền mà phần mềm độc hại hay lạm dụng. App nào tải bằng file
+APK cũng dính, không riêng app này. Mở khoá một lần:
+
+1. **Samsung**: *Cài đặt > Bảo mật và quyền riêng tư > Chặn tự động (Auto
+   Blocker)* → tắt. Hãng khác bỏ qua bước này.
+2. *Cài đặt > Ứng dụng > Bỏ Qua Quảng Cáo* → bấm **dấu ba chấm ⋮** góc trên bên
+   phải → **"Cho phép cài đặt bị hạn chế"**.
+3. Quay lại *Cài đặt > Trợ năng* và bật app lên.
+
+Không thấy mục đó (hay gặp trên Android 14+)? Cắm máy vào máy tính và chạy một
+trong hai lệnh:
+
+```bash
+# mở khoá trực tiếp
+adb shell appops set com.hung.adskipper ACCESS_RESTRICTED_SETTINGS allow
+
+# hoặc cài lại và khai báo nguồn cài là Play Store
+adb install -i com.android.vending -r build/app/outputs/flutter-apk/app-release.apk
+```
+
+Cách chắc ăn nhất khi phát triển là chạy thẳng `flutter run` rồi dùng lệnh
+`appops` ở trên — khỏi phải đụng tới Auto Blocker.
+
 ## Tuỳ chỉnh (trong màn hình Cài đặt)
 
 - **Chu kỳ quét màn hình** (mặc định 400 ms): nhỏ hơn thì bấm nhanh hơn, tốn pin hơn.

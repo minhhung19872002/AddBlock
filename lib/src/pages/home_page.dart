@@ -4,6 +4,7 @@ import '../app.dart';
 import '../services/app_controller.dart';
 import '../widgets/activity_list.dart';
 import '../widgets/guide_card.dart';
+import '../widgets/restricted_settings_card.dart';
 import '../widgets/section_card.dart';
 import '../widgets/stats_row.dart';
 import '../widgets/status_card.dart';
@@ -48,6 +49,13 @@ class HomePage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: <Widget>[
             StatusCard(controller: controller),
+            if (controller.likelyBlockedByRestrictedSettings) ...<Widget>[
+              const SizedBox(height: 16),
+              RestrictedSettingsCard(
+                onOpenAppInfo: controller.openAppInfo,
+                onOpenAccessibility: controller.openAccessibilitySettings,
+              ),
+            ],
             const SizedBox(height: 16),
             StatsRow(settings: controller.settings),
             const SizedBox(height: 20),

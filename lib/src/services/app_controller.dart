@@ -19,6 +19,7 @@ class AppController extends ChangeNotifier {
   bool _serviceRunning = false;
   bool _muted = false;
   bool _loading = true;
+  bool _permissionRequested = false;
 
   SkipSettings get settings => _settings;
   List<SkipEvent> get log => _log;
@@ -31,6 +32,12 @@ class AppController extends ChangeNotifier {
 
   /// Đang thực sự làm việc: đã cấp quyền và công tắc trong app đang bật.
   bool get active => _accessibilityEnabled && _settings.enabled;
+
+  /// Người dùng đã mở màn hình Trợ năng nhưng quay lại vẫn chưa bật được.
+  /// Trên Android 13+ gần như chắc chắn là do "Cài đặt hạn chế" chặn, nên hiện
+  /// hướng dẫn mở khoá thay vì để họ bấm tới bấm lui.
+  bool get likelyBlockedByRestrictedSettings =>
+      _permissionRequested && !_accessibilityEnabled;
 
   Future<void> start() async {
     await refresh();
@@ -47,6 +54,7 @@ class AppController extends ChangeNotifier {
     final List<SkipEvent> log = await _channel.getLog();
 
     _settings = settings;
+    if (enabled) _permissionRequested = false;
     _accessibilityEnabled = enabled;
     _serviceRunning = running;
     _muted = muted;
@@ -93,9 +101,14 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> openAccessibilitySettings() => _channel.openAccessibilitySettings();
+  Future<void> openAccessibilitySettings() {
+    _permissionRequested = true;
+    return _channel.openAccessibilitySettings();
+  }
 
   Future<void> openBatterySettings() => _channel.openBatterySettings();
+
+  Future<void> openAppInfo() => _channel.openAppInfo();
 
   @override
   void dispose() {

@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.net.Uri
 import android.provider.Settings
 import android.text.TextUtils
 import io.flutter.embedding.android.FlutterActivity
@@ -36,6 +37,10 @@ class MainActivity : FlutterActivity() {
                     }
                     "openBatterySettings" -> {
                         openBatterySettings()
+                        result.success(true)
+                    }
+                    "openAppInfo" -> {
+                        openAppInfo()
                         result.success(true)
                     }
                     "getSettings" -> result.success(settings.toMap())
@@ -111,6 +116,20 @@ class MainActivity : FlutterActivity() {
         runCatching { startActivity(intent) }
     }
 
+    /**
+     * Mở thẳng trang "Thông tin ứng dụng" — nơi có menu ba chấm chứa mục
+     * "Cho phép cài đặt bị hạn chế" của Android 13 trở lên.
+     */
+    private fun openAppInfo() {
+        runCatching {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:$packageName"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+    }
+
     /** Mở phần tối ưu hoá pin để người dùng cho phép app chạy nền. */
     private fun openBatterySettings() {
         val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
@@ -119,7 +138,7 @@ class MainActivity : FlutterActivity() {
             runCatching {
                 startActivity(
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        .setData(android.net.Uri.parse("package:$packageName"))
+                        .setData(Uri.parse("package:$packageName"))
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 )
             }

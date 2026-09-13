@@ -29,6 +29,9 @@ class AdSkipperChannel {
 
   Future<void> openBatterySettings() => _invoke<bool>('openBatterySettings');
 
+  /// Mở trang "Thông tin ứng dụng" — nơi có mục "Cho phép cài đặt bị hạn chế".
+  Future<void> openAppInfo() => _invoke<bool>('openAppInfo');
+
   Future<SkipSettings> getSettings() => _settingsCall('getSettings');
 
   Future<SkipSettings> updateSettings(SkipSettings settings) =>
