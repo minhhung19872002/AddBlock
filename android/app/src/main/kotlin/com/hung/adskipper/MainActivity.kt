@@ -3,6 +3,7 @@ package com.hung.adskipper
 import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
@@ -49,6 +50,7 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
                     "requestAddBlackScreenTile" -> result.success(requestAddTile())
+                    "getAppVersion" -> result.success(appVersion())
                     "getSettings" -> result.success(settings.toMap())
                     "updateSettings" -> {
                         (call.arguments as? Map<*, *>)?.let { settings.applyMap(it) }
@@ -120,6 +122,29 @@ class MainActivity : FlutterActivity() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { startActivity(intent) }
+    }
+
+    /**
+     * Phiên bản và thời điểm bản đang chạy được cài đặt — để biết ngay máy đang
+     * chạy bản build nào, khỏi đoán xem đã có tính năng mới hay chưa.
+     */
+    private fun appVersion(): Map<String, Any?> {
+        val info = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getPackageInfo(
+                    packageName,
+                    PackageManager.PackageInfoFlags.of(0L),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0)
+            }
+        }.getOrNull()
+
+        return mapOf(
+            "version" to info?.versionName.orEmpty(),
+            "installedAt" to (info?.lastUpdateTime ?: 0L),
+        )
     }
 
     /**

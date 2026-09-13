@@ -118,6 +118,11 @@ xuống). Android không tự gắn nút đó, nên:
 
 Nút chỉ hoạt động khi quyền Trợ năng đã bật — chưa bật thì nó mở app lên.
 
+**Không thấy nút trong danh sách chỉnh sửa?** Nghĩa là APK trên máy được build
+trước khi tính năng này có. Kiểm tra nhanh bằng mục *Hướng dẫn* trong app: có
+đủ **4 bước** và nút *Thêm nút "Màn hình đen"* thì bản đang chạy đã mới. Dòng
+cuối màn hình chính cũng ghi phiên bản và thời điểm cài.
+
 ## Máy báo "Cài đặt hạn chế" / "Ứng dụng đã bị từ chối cấp quyền"
 
 Từ **Android 13**, hệ thống chặn mọi app cài ngoài Play Store bật quyền Trợ năng

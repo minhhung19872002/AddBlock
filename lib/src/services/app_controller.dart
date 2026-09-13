@@ -20,6 +20,8 @@ class AppController extends ChangeNotifier {
   bool _muted = false;
   bool _loading = true;
   bool _permissionRequested = false;
+  String _appVersion = '';
+  DateTime? _installedAt;
 
   SkipSettings get settings => _settings;
   List<SkipEvent> get log => _log;
@@ -29,6 +31,11 @@ class AppController extends ChangeNotifier {
   /// Đang tắt tiếng vì quảng cáo (để hiện báo cho người dùng biết vì sao mất tiếng).
   bool get muted => _muted;
   bool get loading => _loading;
+
+  String get appVersion => _appVersion;
+
+  /// Thời điểm bản đang chạy được cài lên máy.
+  DateTime? get installedAt => _installedAt;
 
   /// Đang thực sự làm việc: đã cấp quyền và công tắc trong app đang bật.
   bool get active => _accessibilityEnabled && _settings.enabled;
@@ -52,6 +59,8 @@ class AppController extends ChangeNotifier {
     final bool running = await _channel.isServiceRunning();
     final bool muted = await _channel.isMuted();
     final List<SkipEvent> log = await _channel.getLog();
+    final ({String version, DateTime? installedAt}) build =
+        await _channel.getAppVersion();
 
     _settings = settings;
     if (enabled) _permissionRequested = false;
@@ -59,6 +68,8 @@ class AppController extends ChangeNotifier {
     _serviceRunning = running;
     _muted = muted;
     _log = log;
+    _appVersion = build.version;
+    _installedAt = build.installedAt;
     _loading = false;
     notifyListeners();
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../services/app_controller.dart';
+import '../utils/formatting.dart';
 import '../widgets/activity_list.dart';
 import '../widgets/guide_card.dart';
 import '../widgets/restricted_settings_card.dart';
@@ -76,6 +77,8 @@ class HomePage extends StatelessWidget {
               onOpenBattery: controller.openBatterySettings,
               onAddBlackScreenTile: controller.requestAddBlackScreenTile,
             ),
+            const SizedBox(height: 20),
+            _BuildStamp(controller: controller),
           ],
         ),
       ),
@@ -102,5 +105,33 @@ class HomePage extends StatelessWidget {
       ),
     );
     if (ok ?? false) await controller.resetStats();
+  }
+}
+
+/// Dòng cuối trang: đang chạy bản nào, cài lúc nào. Nhờ đó luôn biết được máy
+/// đã có bản mới nhất hay chưa mà không phải đoán.
+class _BuildStamp extends StatelessWidget {
+  const _BuildStamp({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    if (controller.appVersion.isEmpty) return const SizedBox.shrink();
+    final DateTime? installed = controller.installedAt;
+    final String stamp = installed == null
+        ? 'Phiên bản ${controller.appVersion}'
+        : 'Phiên bản ${controller.appVersion} · cài lúc '
+            '${formatClock(installed)} ngày ${formatDate(installed)}';
+
+    return Center(
+      child: Text(
+        stamp,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      ),
+    );
   }
 }

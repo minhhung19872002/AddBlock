@@ -37,6 +37,19 @@ class AdSkipperChannel {
   Future<bool> requestAddBlackScreenTile() async =>
       await _invoke<String>('requestAddBlackScreenTile') == 'requested';
 
+  /// Phiên bản đang chạy và thời điểm nó được cài — để biết máy đang chạy bản
+  /// build nào mà khỏi phải đoán.
+  Future<({String version, DateTime? installedAt})> getAppVersion() async {
+    final Map<Object?, Object?>? map =
+        await _invoke<Map<Object?, Object?>>('getAppVersion');
+    final int installed = (map?['installedAt'] as num?)?.toInt() ?? 0;
+    return (
+      version: map?['version'] as String? ?? '',
+      installedAt:
+          installed > 0 ? DateTime.fromMillisecondsSinceEpoch(installed) : null,
+    );
+  }
+
   Future<SkipSettings> getSettings() => _settingsCall('getSettings');
 
   Future<SkipSettings> updateSettings(SkipSettings settings) =>
