@@ -63,7 +63,7 @@ class _EventTile extends StatelessWidget {
       dense: true,
       leading: CircleAvatar(
         radius: 16,
-        backgroundColor: color.withOpacity(0.12),
+        backgroundColor: color.withValues(alpha: 0.12),
         child: Icon(
           isClick ? Icons.check_rounded : Icons.info_outline,
           size: 18,

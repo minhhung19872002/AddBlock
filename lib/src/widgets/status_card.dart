@@ -43,7 +43,7 @@ class StatusCard extends StatelessWidget {
             : 'Quyền đã được cấp. Bật công tắc bên dưới để tiếp tục tự động bỏ qua.';
 
     return SectionCard(
-      color: accent.withOpacity(0.10),
+      color: accent.withValues(alpha: 0.10),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,7 +54,7 @@ class StatusCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: accent.withOpacity(0.18),
+                  color: accent.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: accent, size: 26),

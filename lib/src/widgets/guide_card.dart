@@ -84,7 +84,7 @@ class _Step extends StatelessWidget {
           height: 26,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.12),
+            color: theme.colorScheme.primary.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
           child: Text(

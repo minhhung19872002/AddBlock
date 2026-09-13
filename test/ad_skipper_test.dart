@@ -3,6 +3,7 @@ import 'package:ad_skipper/src/models/skip_event.dart';
 import 'package:ad_skipper/src/models/skip_settings.dart';
 import 'package:ad_skipper/src/utils/formatting.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -105,8 +106,20 @@ void main() {
   testWidgets('màn hình chính nhắc cấp quyền khi chưa bật Trợ năng', (
     WidgetTester tester,
   ) async {
-    // Trong môi trường test không có phía Android, channel trả về mặc định:
-    // coi như người dùng chưa cấp quyền Trợ năng.
+    // Trong môi trường test không có phía Android: mock channel trả về null để
+    // app dùng giá trị mặc định — coi như người dùng chưa cấp quyền Trợ năng.
+    // Không mock thì lời gọi platform không bao giờ hoàn tất dưới fake-async.
+    final TestDefaultBinaryMessenger messenger =
+        tester.binding.defaultBinaryMessenger;
+    for (final String name in <String>[
+      'com.hung.adskipper/control',
+      'com.hung.adskipper/events',
+    ]) {
+      final MethodChannel channel = MethodChannel(name);
+      messenger.setMockMethodCallHandler(channel, (MethodCall _) async => null);
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    }
+
     await tester.pumpWidget(const AdSkipperApp());
     await tester.pumpAndSettle();
 
