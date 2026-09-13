@@ -21,12 +21,16 @@ import android.view.accessibility.AccessibilityNodeInfo
  *
  * Android không cho một app bấm hộ vào app khác, trừ khi người dùng tự tay bật
  * Accessibility Service cho app đó. Service này lắng nghe những thay đổi trên
- * màn hình YouTube, tìm nút "Bỏ qua" rồi bấm giúp người dùng.
+ * màn hình YouTube và làm hai việc:
+ *
+ *  1. Thấy nút "Bỏ qua" thì bấm ngay.
+ *  2. Trong lúc quảng cáo chạy mà nút đó chưa hiện, tắt tiếng cho đỡ nhức đầu.
  */
 class AdSkipperService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val settings: SkipSettings by lazy { SkipSettings(this) }
+    private val muter: AdMuter by lazy { AdMuter(this) }
 
     /** Gói ứng dụng đang hiển thị, cập nhật từ sự kiện WINDOW_STATE_CHANGED. */
     private var foregroundPackage: String = ""
@@ -72,11 +76,15 @@ class AdSkipperService : AccessibilityService() {
         scanNow()
     }
 
-    override fun onInterrupt() = Unit
+    override fun onInterrupt() {
+        releaseMute()
+    }
 
     override fun onDestroy() {
         isRunning = false
         handler.removeCallbacksAndMessages(null)
+        // Tuyệt đối không để người dùng ở lại với cái máy câm.
+        releaseMute()
         SkipLog.add(SkipLog.KIND_SERVICE_OFF, "", "")
         super.onDestroy()
     }
@@ -102,6 +110,7 @@ class AdSkipperService : AccessibilityService() {
         lastScanAt = SystemClock.uptimeMillis()
         if (!settings.enabled) {
             idleMisses = IDLE_AFTER_MISSES
+            releaseMute()
             return
         }
 
@@ -111,62 +120,99 @@ class AdSkipperService : AccessibilityService() {
         val pkg = root?.packageName?.toString().orEmpty()
         if (root == null || !isWatched(pkg)) {
             if (idleMisses < IDLE_AFTER_MISSES) idleMisses++
+            // Rời YouTube giữa chừng quảng cáo thì phải trả lại tiếng ngay.
+            releaseMute()
             return
         }
         idleMisses = 0
         foregroundPackage = pkg
 
+        val found = inspect(root, pkg)
+
+        // Tắt tiếng được xử lý trước, và không bị chặn bởi thời gian nghỉ giữa
+        // hai lần bấm — vì đây chính là đoạn nút "Bỏ qua" chưa hiện ra.
+        updateMute(found.adVisible)
+
         if (SystemClock.uptimeMillis() - lastClickAt < settings.clickCooldownMs) return
 
-        // 1. Ưu tiên resource-id: chính xác nhất, không phụ thuộc ngôn ngữ.
-        for (id in SkipTargets.SKIP_VIEW_IDS) {
-            val node = findByViewId(root, "$pkg:id/$id") ?: continue
-            if (tryClick(node, SkipLog.KIND_SKIP, id, pkg)) return
+        val skipNode = found.skipNode
+        if (skipNode != null && tryClick(skipNode, SkipLog.KIND_SKIP, found.skipLabel, pkg)) {
+            // Bỏ qua xong là video thật chạy ngay — trả tiếng lại luôn, không
+            // chờ tới lượt quét sau.
+            releaseMute()
+            return
         }
 
-        // 2. Rồi mới tới so khớp nhãn "Bỏ qua" / "Skip Ad" / ...
-        val skipLabels = settings.skipLabels.map { it.lowercase() }.toSet()
-        val matched = findByLabels(root, skipLabels)
-        if (matched != null && tryClick(matched.first, SkipLog.KIND_SKIP, matched.second, pkg)) return
-
-        // 3. Cuối cùng là nút X của banner quảng cáo dán dưới trình phát.
-        if (settings.closeOverlayAds) {
-            for (id in SkipTargets.CLOSE_VIEW_IDS) {
-                val node = findByViewId(root, "$pkg:id/$id") ?: continue
-                if (tryClick(node, SkipLog.KIND_CLOSE, id, pkg)) return
-            }
-            // Nút đóng nhận theo nhãn thì bắt buộc phải nằm trong một view có
-            // id liên quan tới quảng cáo, để không lỡ tay đóng bảng bình luận.
-            val closeLabels = settings.closeLabels.map { it.lowercase() }.toSet()
-            val closeNode = findByLabels(root, closeLabels, requireAdViewId = true)
-            if (closeNode != null) {
-                tryClick(closeNode.first, SkipLog.KIND_CLOSE, closeNode.second, pkg)
-            }
+        val closeNode = found.closeNode
+        if (settings.closeOverlayAds && closeNode != null) {
+            tryClick(closeNode, SkipLog.KIND_CLOSE, found.closeLabel, pkg)
         }
     }
 
     private fun isWatched(pkg: String): Boolean =
         pkg.isNotEmpty() && settings.packages.contains(pkg)
 
+    // ------------------------------------------------------------ tắt tiếng
+
+    private fun updateMute(adVisible: Boolean) {
+        if (!settings.muteDuringAds) {
+            releaseMute()
+            return
+        }
+        // Chốt chặn cuối: nhận diện có sai thì cũng không câm quá lâu.
+        if (muter.isStuck(MAX_MUTE_MS)) {
+            Log.w(TAG, "Tắt tiếng quá lâu, tự mở lại")
+            releaseMute()
+            return
+        }
+        if (adVisible) {
+            if (muter.mute()) {
+                isMuted = true
+                SkipLog.add(SkipLog.KIND_MUTE, "", foregroundPackage)
+            }
+        } else {
+            releaseMute()
+        }
+    }
+
+    private fun releaseMute() {
+        if (muter.unmute()) SkipLog.add(SkipLog.KIND_UNMUTE, "", foregroundPackage)
+        isMuted = false
+    }
+
     // -------------------------------------------------------------- tìm nút
 
-    private fun findByViewId(root: AccessibilityNodeInfo, viewId: String): AccessibilityNodeInfo? {
-        val found = runCatching { root.findAccessibilityNodeInfosByViewId(viewId) }
-            .getOrNull()
-            .orEmpty()
-        return found.firstOrNull { it.isVisibleToUser }
+    /** Kết quả của một lượt soi màn hình. */
+    private class Inspection {
+        var adVisible = false
+        var skipNode: AccessibilityNodeInfo? = null
+        var skipLabel: String = ""
+        var closeNode: AccessibilityNodeInfo? = null
+        var closeLabel: String = ""
     }
 
     /**
-     * Duyệt cây giao diện tìm node có text hoặc content-description trùng khớp
-     * một nhãn đã khai báo. Trả về node kèm nhãn đã khớp.
+     * Duyệt cây giao diện đúng MỘT lần cho cả ba việc: tìm nút "Bỏ qua", tìm
+     * nút đóng banner, và nhận biết trình phát có đang chạy quảng cáo hay không.
+     *
+     * Mỗi node được soi theo hai hướng:
+     *  - resource-id (không phụ thuộc ngôn ngữ, ưu tiên hơn)
+     *  - nhãn chữ / content-description, khớp chính xác
      */
-    private fun findByLabels(
-        root: AccessibilityNodeInfo,
-        labels: Set<String>,
-        requireAdViewId: Boolean = false,
-    ): Pair<AccessibilityNodeInfo, String>? {
-        if (labels.isEmpty()) return null
+    private fun inspect(root: AccessibilityNodeInfo, pkg: String): Inspection {
+        val result = Inspection()
+        val skipLabels = settings.skipLabels.mapTo(HashSet()) { it.lowercase() }
+        val closeLabels = if (settings.closeOverlayAds) {
+            settings.closeLabels.mapTo(HashSet()) { it.lowercase() }
+        } else {
+            emptySet()
+        }
+        val adLabels = if (settings.muteDuringAds) {
+            settings.adMarkerLabels.mapTo(HashSet()) { it.lowercase() }
+        } else {
+            emptySet()
+        }
+
         val queue = ArrayDeque<Pair<AccessibilityNodeInfo, Int>>()
         queue.add(root to 0)
         var visited = 0
@@ -176,13 +222,62 @@ class AdSkipperService : AccessibilityService() {
             visited++
 
             if (node.isVisibleToUser) {
+                val viewId = node.viewIdResourceName?.substringAfterLast('/')?.lowercase()
                 val text = normalize(node.text)
                 val desc = normalize(node.contentDescription)
-                val hit = listOfNotNull(text, desc).firstOrNull { it in labels }
-                val idAllows = !requireAdViewId || looksLikeAdViewId(node.viewIdResourceName)
-                if (hit != null && idAllows && !isBlocked(text) && !isBlocked(desc)) {
-                    return node to hit
+                val blocked = isBlocked(text) || isBlocked(desc)
+
+                if (viewId != null) {
+                    if (result.skipNode == null && viewId in SKIP_IDS) {
+                        result.skipNode = node
+                        result.skipLabel = viewId
+                        result.adVisible = true
+                    }
+                    if (result.closeNode == null && settings.closeOverlayAds && viewId in CLOSE_IDS) {
+                        result.closeNode = node
+                        result.closeLabel = viewId
+                    }
+                    if (!result.adVisible && settings.muteDuringAds && viewId in AD_MARKER_IDS) {
+                        result.adVisible = true
+                    }
                 }
+
+                if (!blocked) {
+                    val label = listOfNotNull(text, desc)
+                    if (result.skipNode == null) {
+                        val hit = label.firstOrNull { it in skipLabels }
+                        if (hit != null) {
+                            result.skipNode = node
+                            result.skipLabel = hit
+                            result.adVisible = true
+                        }
+                    }
+                    // Nút đóng nhận theo nhãn thì bắt buộc phải nằm trong một
+                    // view có id liên quan quảng cáo, để không lỡ tay đóng
+                    // bảng bình luận.
+                    if (result.closeNode == null && closeLabels.isNotEmpty() &&
+                        looksLikeAdViewId(node.viewIdResourceName)
+                    ) {
+                        val hit = label.firstOrNull { it in closeLabels }
+                        if (hit != null) {
+                            result.closeNode = node
+                            result.closeLabel = hit
+                        }
+                    }
+                    // Nhãn "Được tài trợ" chỉ đáng tin khi nó KHÔNG nằm trong
+                    // danh sách cuộn được — bảng tin cũng đầy video tài trợ.
+                    if (!result.adVisible && adLabels.isNotEmpty() &&
+                        label.any { it in adLabels } && !isInsideScrollable(node)
+                    ) {
+                        result.adVisible = true
+                    }
+                }
+            }
+
+            if (result.skipNode != null && result.adVisible &&
+                (result.closeNode != null || closeLabels.isEmpty())
+            ) {
+                break // đã đủ thông tin, không cần duyệt tiếp
             }
 
             if (depth >= MAX_DEPTH) continue
@@ -191,7 +286,23 @@ class AdSkipperService : AccessibilityService() {
                 queue.add(child to depth + 1)
             }
         }
-        return null
+        return result
+    }
+
+    /**
+     * Node có nằm trong một danh sách cuộn được hay không. Overlay của trình
+     * phát thì không, còn thẻ video trong bảng tin thì có.
+     */
+    private fun isInsideScrollable(node: AccessibilityNodeInfo): Boolean {
+        var current: AccessibilityNodeInfo? = node
+        var depth = 0
+        while (depth <= MAX_SCROLL_LOOKUP) {
+            val candidate = current ?: return false
+            if (candidate.isScrollable) return true
+            current = runCatching { candidate.parent }.getOrNull()
+            depth++
+        }
+        return false
     }
 
     /**
@@ -214,7 +325,7 @@ class AdSkipperService : AccessibilityService() {
      * "…:id/thread_header" -> false (không nhầm "ad" nằm giữa một từ khác).
      */
     private fun looksLikeAdViewId(viewId: String?): Boolean {
-        val id = viewId?.substringAfterLast("/")?.lowercase() ?: return false
+        val id = viewId?.substringAfterLast('/')?.lowercase() ?: return false
         return AD_ID_PATTERN.containsMatchIn(id)
     }
 
@@ -233,7 +344,6 @@ class AdSkipperService : AccessibilityService() {
         pkg: String,
     ): Boolean {
         if (!node.isVisibleToUser) return false
-        if (SystemClock.uptimeMillis() - lastClickAt < settings.clickCooldownMs) return false
 
         val clicked = performClick(node)
         if (!clicked) return false
@@ -300,14 +410,22 @@ class AdSkipperService : AccessibilityService() {
 
     companion object {
         private const val TAG = "AdSkipper"
-        private const val MAX_NODES = 900
-        private const val MAX_DEPTH = 28
+        private const val MAX_NODES = 1500
+        private const val MAX_DEPTH = 30
         private const val MAX_CLICKABLE_LOOKUP = 5
+        private const val MAX_SCROLL_LOOKUP = 8
         private const val MAX_LABEL_LENGTH = 40
         private const val MIN_EVENT_SCAN_GAP_MS = 120L
         private const val TAP_DURATION_MS = 60L
         private const val IDLE_AFTER_MISSES = 5
         private const val IDLE_SCAN_INTERVAL_MS = 3000L
+
+        /** Không bao giờ để máy câm quá lâu, kể cả khi nhận diện sai. */
+        private const val MAX_MUTE_MS = 90_000L
+
+        private val SKIP_IDS = SkipTargets.SKIP_VIEW_IDS.toSet()
+        private val CLOSE_IDS = SkipTargets.CLOSE_VIEW_IDS.toSet()
+        private val AD_MARKER_IDS = SkipTargets.AD_MARKER_VIEW_IDS.toSet()
 
         private val TRIM_CHARS = charArrayOf(
             '.', ',', ':', ';', '!', '?', '·', '•', '›', '»', '>', '▸', '▶', '→', '…', '-', '–',
@@ -318,6 +436,11 @@ class AdSkipperService : AccessibilityService() {
         /** Cho lớp UI biết service có đang sống hay không. */
         @Volatile
         var isRunning: Boolean = false
+            private set
+
+        /** Có đang tắt tiếng vì quảng cáo hay không. */
+        @Volatile
+        var isMuted: Boolean = false
             private set
     }
 }

@@ -32,6 +32,22 @@ void main() {
       expect(settings.lastSkipAt, isNull);
     });
 
+    test('tắt tiếng quảng cáo bật sẵn khi chưa có cấu hình', () {
+      final SkipSettings settings = SkipSettings.fromMap(const <Object?, Object?>{});
+      expect(settings.muteDuringAds, isTrue);
+    });
+
+    test('toUpdateMap mang theo tuỳ chọn tắt tiếng', () {
+      const SkipSettings settings = SkipSettings(
+        muteDuringAds: false,
+        adMarkerLabels: <String>['được tài trợ'],
+      );
+      final Map<String, Object?> map = settings.toUpdateMap();
+
+      expect(map['muteDuringAds'], isFalse);
+      expect(map['adMarkerLabels'], <String>['được tài trợ']);
+    });
+
     test('copyWith chỉ đổi trường được truyền vào', () {
       const SkipSettings settings = SkipSettings(scanIntervalMs: 400, totalSkips: 3);
       final SkipSettings updated = settings.copyWith(scanIntervalMs: 900);
@@ -53,6 +69,14 @@ void main() {
       expect(event.kind, SkipEventKind.skip);
       expect(event.isClick, isTrue);
       expect(event.description, contains('Bỏ qua'));
+    });
+
+    test('sự kiện tắt tiếng không tính là một lần bấm', () {
+      final SkipEvent event = SkipEvent.fromMap(<Object?, Object?>{'kind': 'mute'});
+
+      expect(event.kind, SkipEventKind.mute);
+      expect(event.isClick, isFalse);
+      expect(event.description, contains('tắt tiếng'));
     });
 
     test('sự kiện dịch vụ không tính là một lần bấm', () {

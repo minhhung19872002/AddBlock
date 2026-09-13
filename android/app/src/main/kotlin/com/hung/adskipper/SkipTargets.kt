@@ -64,6 +64,53 @@ object SkipTargets {
         "تخطي",
     )
 
+    /**
+     * Id của những thành phần chỉ xuất hiện khi TRÌNH PHÁT đang chạy quảng cáo.
+     * Dùng để biết "đang trong quảng cáo" kể cả khi nút Bỏ qua chưa hiện — nhờ
+     * vậy mới tắt tiếng được đoạn 5 giây đầu.
+     */
+    val AD_MARKER_VIEW_IDS = listOf(
+        "ad_progress_text",
+        "ad_countdown",
+        "ad_countdown_text",
+        "ad_attribution",
+        "ad_badge",
+        "ad_overlay",
+        "ad_cta_button",
+        "ad_cta_button_view",
+        "player_learn_more_button",
+        "skip_ad_button",
+        "ad_skip_button",
+    )
+
+    /**
+     * Nhãn "Được tài trợ" / "Sponsored". Chỉ được tin khi nó KHÔNG nằm trong
+     * một danh sách cuộn được — bảng tin YouTube cũng có video được tài trợ, mà
+     * lướt bảng tin thì không có gì để tắt tiếng cả.
+     */
+    val DEFAULT_AD_MARKER_LABELS = listOf(
+        "được tài trợ",
+        "quảng cáo",
+        "sponsored",
+        "ad",
+        "ads",
+        "advertisement",
+        "anuncio",
+        "publicidad",
+        "publicité",
+        "annonce",
+        "werbung",
+        "anúncio",
+        "iklan",
+        "реклама",
+        "إعلان",
+        "โฆษณา",
+        "広告",
+        "광고",
+        "广告",
+        "廣告",
+    )
+
     /** Resource-id của nút X đóng banner quảng cáo dán ở đáy trình phát. */
     val CLOSE_VIEW_IDS = listOf(
         "ad_close_button",

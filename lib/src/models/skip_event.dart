@@ -1,5 +1,5 @@
 /// Một dòng nhật ký do AccessibilityService gửi lên.
-enum SkipEventKind { skip, close, serviceOn, serviceOff, unknown }
+enum SkipEventKind { skip, close, mute, unmute, serviceOn, serviceOff, unknown }
 
 class SkipEvent {
   const SkipEvent({
@@ -33,6 +33,10 @@ class SkipEvent {
         return SkipEventKind.skip;
       case 'close':
         return SkipEventKind.close;
+      case 'mute':
+        return SkipEventKind.mute;
+      case 'unmute':
+        return SkipEventKind.unmute;
       case 'service_on':
         return SkipEventKind.serviceOn;
       case 'service_off':
@@ -51,6 +55,10 @@ class SkipEvent {
         return 'Đã bấm "Bỏ qua" ($label)';
       case SkipEventKind.close:
         return 'Đã đóng banner quảng cáo ($label)';
+      case SkipEventKind.mute:
+        return 'Đã tắt tiếng vì quảng cáo đang chạy';
+      case SkipEventKind.unmute:
+        return 'Đã bật tiếng lại';
       case SkipEventKind.serviceOn:
         return 'Dịch vụ trợ năng bắt đầu chạy';
       case SkipEventKind.serviceOff:

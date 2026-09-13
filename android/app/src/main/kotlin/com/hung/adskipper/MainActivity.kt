@@ -29,6 +29,7 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "isAccessibilityEnabled" -> result.success(isAccessibilityEnabled())
                     "isServiceRunning" -> result.success(AdSkipperService.isRunning)
+                    "isMuted" -> result.success(AdSkipperService.isMuted)
                     "openAccessibilitySettings" -> {
                         openAccessibilitySettings()
                         result.success(true)

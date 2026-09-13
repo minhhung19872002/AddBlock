@@ -32,10 +32,14 @@ class StatusCard extends StatelessWidget {
         : active
             ? 'Đang canh quảng cáo'
             : 'Đang tạm dừng';
+    final String activeSubtitle = controller.settings.muteDuringAds
+        ? 'Cứ mở YouTube như bình thường. Lúc quảng cáo chưa cho bỏ qua thì app '
+            'tắt tiếng, nút "Bỏ qua" hiện ra là bấm ngay.'
+        : 'Cứ mở YouTube như bình thường. Khi nút "Bỏ qua" hiện ra, app sẽ bấm ngay.';
     final String subtitle = !granted
         ? 'Bật quyền Trợ năng để app có thể bấm nút "Bỏ qua" giúp bạn.'
         : active
-            ? 'Cứ mở YouTube như bình thường. Khi nút "Bỏ qua" hiện ra, app sẽ bấm ngay.'
+            ? activeSubtitle
             : 'Quyền đã được cấp. Bật công tắc bên dưới để tiếp tục tự động bỏ qua.';
 
     return SectionCard(
@@ -104,6 +108,25 @@ class StatusCard extends StatelessWidget {
               ),
               subtitle: const Text('Tắt tạm thời mà không cần gỡ quyền Trợ năng'),
             ),
+          // Mất tiếng đột ngột dễ làm người dùng hoảng — nói rõ là do app.
+          if (controller.muted) ...<Widget>[
+            const SizedBox(height: 4),
+            Row(
+              children: <Widget>[
+                Icon(Icons.volume_off_rounded, size: 18, color: accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Đang tắt tiếng vì quảng cáo — sẽ tự bật lại khi hết.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

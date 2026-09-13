@@ -22,6 +22,9 @@ class AdSkipperChannel {
   /// Dịch vụ có đang thực sự chạy trong bộ nhớ hay không.
   Future<bool> isServiceRunning() async => await _invoke<bool>('isServiceRunning') ?? false;
 
+  /// Đang tắt tiếng vì quảng cáo hay không.
+  Future<bool> isMuted() async => await _invoke<bool>('isMuted') ?? false;
+
   Future<void> openAccessibilitySettings() => _invoke<bool>('openAccessibilitySettings');
 
   Future<void> openBatterySettings() => _invoke<bool>('openBatterySettings');

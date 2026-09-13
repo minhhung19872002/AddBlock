@@ -35,6 +35,17 @@ class SettingsPage extends StatelessWidget {
             child: Column(
               children: <Widget>[
                 SwitchListTile.adaptive(
+                  value: settings.muteDuringAds,
+                  onChanged: (bool value) =>
+                      controller.update(settings.copyWith(muteDuringAds: value)),
+                  title: const Text('Tắt tiếng khi quảng cáo đang chạy'),
+                  subtitle: const Text(
+                    'Dùng cho đoạn 5 giây đầu chưa cho bỏ qua. Tiếng tự bật lại '
+                    'khi hết quảng cáo, khi rời YouTube, hoặc sau 90 giây.',
+                  ),
+                ),
+                const Divider(height: 1),
+                SwitchListTile.adaptive(
                   value: settings.closeOverlayAds,
                   onChanged: (bool value) =>
                       controller.update(settings.copyWith(closeOverlayAds: value)),
@@ -132,6 +143,16 @@ class SettingsPage extends StatelessWidget {
                   values: settings.closeLabels,
                   onChanged: (List<String> value) =>
                       controller.update(settings.copyWith(closeLabels: value)),
+                ),
+                const Divider(height: 1),
+                ListEditor(
+                  title: 'Nhãn nhận biết quảng cáo',
+                  values: settings.adMarkerLabels,
+                  hint: 'Dùng để biết khi nào cần tắt tiếng. Nhãn ở đây chỉ được '
+                      'tính khi nó nằm trên trình phát, không tính video được '
+                      'tài trợ trong bảng tin.',
+                  onChanged: (List<String> value) =>
+                      controller.update(settings.copyWith(adMarkerLabels: value)),
                 ),
               ],
             ),

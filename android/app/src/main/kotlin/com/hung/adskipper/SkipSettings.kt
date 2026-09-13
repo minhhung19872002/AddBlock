@@ -22,6 +22,14 @@ class SkipSettings(context: Context) {
         get() = prefs.getBoolean(KEY_CLOSE_OVERLAY, true)
         set(value) = prefs.edit().putBoolean(KEY_CLOSE_OVERLAY, value).apply()
 
+    /**
+     * Tắt tiếng trong lúc quảng cáo chạy mà nút "Bỏ qua" chưa hiện ra.
+     * Không chặn được quảng cáo thì ít nhất cũng không phải nghe nó.
+     */
+    var muteDuringAds: Boolean
+        get() = prefs.getBoolean(KEY_MUTE_DURING_ADS, true)
+        set(value) = prefs.edit().putBoolean(KEY_MUTE_DURING_ADS, value).apply()
+
     /** Rung nhẹ mỗi lần bấm được, để biết app có đang chạy hay không. */
     var vibrate: Boolean
         get() = prefs.getBoolean(KEY_VIBRATE, false)
@@ -44,6 +52,10 @@ class SkipSettings(context: Context) {
     var closeLabels: List<String>
         get() = readList(KEY_CLOSE_LABELS, SkipTargets.DEFAULT_CLOSE_LABELS)
         set(value) = writeList(KEY_CLOSE_LABELS, value)
+
+    var adMarkerLabels: List<String>
+        get() = readList(KEY_AD_MARKER_LABELS, SkipTargets.DEFAULT_AD_MARKER_LABELS)
+        set(value) = writeList(KEY_AD_MARKER_LABELS, value)
 
     var packages: List<String>
         get() = readList(KEY_PACKAGES, SkipTargets.DEFAULT_PACKAGES)
@@ -72,6 +84,8 @@ class SkipSettings(context: Context) {
         prefs.edit()
             .remove(KEY_SKIP_LABELS)
             .remove(KEY_CLOSE_LABELS)
+            .remove(KEY_AD_MARKER_LABELS)
+            .remove(KEY_MUTE_DURING_ADS)
             .remove(KEY_PACKAGES)
             .remove(KEY_SCAN_INTERVAL)
             .remove(KEY_CLICK_COOLDOWN)
@@ -83,11 +97,13 @@ class SkipSettings(context: Context) {
     fun toMap(): Map<String, Any?> = mapOf(
         "enabled" to enabled,
         "closeOverlayAds" to closeOverlayAds,
+        "muteDuringAds" to muteDuringAds,
         "vibrate" to vibrate,
         "scanIntervalMs" to scanIntervalMs,
         "clickCooldownMs" to clickCooldownMs,
         "skipLabels" to skipLabels,
         "closeLabels" to closeLabels,
+        "adMarkerLabels" to adMarkerLabels,
         "packages" to packages,
         "totalSkips" to totalSkips,
         "lastSkipAt" to lastSkipAt,
@@ -97,11 +113,13 @@ class SkipSettings(context: Context) {
     fun applyMap(map: Map<*, *>) {
         (map["enabled"] as? Boolean)?.let { enabled = it }
         (map["closeOverlayAds"] as? Boolean)?.let { closeOverlayAds = it }
+        (map["muteDuringAds"] as? Boolean)?.let { muteDuringAds = it }
         (map["vibrate"] as? Boolean)?.let { vibrate = it }
         (map["scanIntervalMs"] as? Number)?.let { scanIntervalMs = it.toInt() }
         (map["clickCooldownMs"] as? Number)?.let { clickCooldownMs = it.toInt() }
         (map["skipLabels"] as? List<*>)?.let { skipLabels = it.filterIsInstance<String>() }
         (map["closeLabels"] as? List<*>)?.let { closeLabels = it.filterIsInstance<String>() }
+        (map["adMarkerLabels"] as? List<*>)?.let { adMarkerLabels = it.filterIsInstance<String>() }
         (map["packages"] as? List<*>)?.let { packages = it.filterIsInstance<String>() }
     }
 
@@ -132,6 +150,8 @@ class SkipSettings(context: Context) {
         private const val KEY_CLICK_COOLDOWN = "click_cooldown_ms"
         private const val KEY_SKIP_LABELS = "skip_labels"
         private const val KEY_CLOSE_LABELS = "close_labels"
+        private const val KEY_AD_MARKER_LABELS = "ad_marker_labels"
+        private const val KEY_MUTE_DURING_ADS = "mute_during_ads"
         private const val KEY_PACKAGES = "packages"
         private const val KEY_TOTAL_SKIPS = "total_skips"
         private const val KEY_LAST_SKIP_AT = "last_skip_at"

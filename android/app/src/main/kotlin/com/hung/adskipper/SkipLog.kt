@@ -11,6 +11,8 @@ object SkipLog {
 
     const val KIND_SKIP = "skip"
     const val KIND_CLOSE = "close"
+    const val KIND_MUTE = "mute"
+    const val KIND_UNMUTE = "unmute"
     const val KIND_SERVICE_ON = "service_on"
     const val KIND_SERVICE_OFF = "service_off"
 

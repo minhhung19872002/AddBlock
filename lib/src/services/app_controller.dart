@@ -17,12 +17,16 @@ class AppController extends ChangeNotifier {
   List<SkipEvent> _log = const <SkipEvent>[];
   bool _accessibilityEnabled = false;
   bool _serviceRunning = false;
+  bool _muted = false;
   bool _loading = true;
 
   SkipSettings get settings => _settings;
   List<SkipEvent> get log => _log;
   bool get accessibilityEnabled => _accessibilityEnabled;
   bool get serviceRunning => _serviceRunning;
+
+  /// Đang tắt tiếng vì quảng cáo (để hiện báo cho người dùng biết vì sao mất tiếng).
+  bool get muted => _muted;
   bool get loading => _loading;
 
   /// Đang thực sự làm việc: đã cấp quyền và công tắc trong app đang bật.
@@ -39,11 +43,13 @@ class AppController extends ChangeNotifier {
     final SkipSettings settings = await _channel.getSettings();
     final bool enabled = await _channel.isAccessibilityEnabled();
     final bool running = await _channel.isServiceRunning();
+    final bool muted = await _channel.isMuted();
     final List<SkipEvent> log = await _channel.getLog();
 
     _settings = settings;
     _accessibilityEnabled = enabled;
     _serviceRunning = running;
+    _muted = muted;
     _log = log;
     _loading = false;
     notifyListeners();
@@ -52,7 +58,12 @@ class AppController extends ChangeNotifier {
   void _onEvent(SkipEvent event) {
     _log = <SkipEvent>[event, ..._log].take(120).toList(growable: false);
     if (event.kind == SkipEventKind.serviceOn) _serviceRunning = true;
-    if (event.kind == SkipEventKind.serviceOff) _serviceRunning = false;
+    if (event.kind == SkipEventKind.serviceOff) {
+      _serviceRunning = false;
+      _muted = false;
+    }
+    if (event.kind == SkipEventKind.mute) _muted = true;
+    if (event.kind == SkipEventKind.unmute) _muted = false;
     if (event.isClick) {
       _settings = _settings.copyWith(
         totalSkips: _settings.totalSkips + 1,
