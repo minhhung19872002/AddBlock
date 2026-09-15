@@ -40,10 +40,11 @@ trực tiếp vào toạ độ nút bằng `dispatchGesture()`.
 YouTube thường bắt xem 5 giây rồi mới cho bấm "Bỏ qua". Đoạn đó không có gì để
 bấm, nên app **tắt tiếng luồng nhạc** thay vì ngồi chịu trận:
 
-- Nhận biết "đang trong quảng cáo" qua id của các thành phần chỉ có trên trình
-  phát khi chạy quảng cáo (`ad_progress_text`, `ad_badge`, `player_learn_more_button`…),
-  hoặc nhãn "Được tài trợ"/"Sponsored" **nằm ngoài danh sách cuộn được** — để
-  video được tài trợ trong bảng tin không làm mất tiếng oan.
+- Nhận biết "đang trong quảng cáo" **chỉ qua id của các thành phần trong trình
+  phát video** (`ad_progress_text`, `ad_badge`, `player_learn_more_button`…) hoặc
+  nút "Bỏ qua". Cố tình **không** đoán bằng chữ "Được tài trợ"/"Sponsored": chữ
+  đó dính cả quảng cáo cài app và banner tài trợ (không phải video), tắt tiếng
+  mấy loại đó chỉ làm câm nhạc/nội dung thật phía sau.
 - Tắt bằng `ADJUST_MUTE` (hệ thống tự nhớ mức âm lượng cũ); máy nào chặn thì lùi
   về cách nhớ mức cũ rồi kéo về 0.
 - **Luôn** bật tiếng lại: hết quảng cáo, rời YouTube, tắt công tắc, dừng dịch

@@ -242,12 +242,6 @@ class AdSkipperService : AccessibilityService() {
         } else {
             emptySet()
         }
-        val adLabels = if (settings.muteDuringAds) {
-            settings.adMarkerLabels.mapTo(HashSet()) { it.lowercase() }
-        } else {
-            emptySet()
-        }
-
         val queue = ArrayDeque<Pair<AccessibilityNodeInfo, Int>>()
         queue.add(root to 0)
         var visited = 0
@@ -302,14 +296,6 @@ class AdSkipperService : AccessibilityService() {
                             result.closeLabel = hit
                         }
                     }
-                    // Nhãn "Được tài trợ" chỉ đáng tin khi nó KHÔNG nằm trong
-                    // danh sách cuộn được — bảng tin cũng đầy video tài trợ.
-                    if (!result.adVisible && adLabels.isNotEmpty() &&
-                        label.any { it in adLabels } && !isInsideScrollable(node)
-                    ) {
-                        result.adVisible = true
-                        result.adMarker = "nhãn:${label.first { it in adLabels }}"
-                    }
                 }
             }
 
@@ -326,22 +312,6 @@ class AdSkipperService : AccessibilityService() {
             }
         }
         return result
-    }
-
-    /**
-     * Node có nằm trong một danh sách cuộn được hay không. Overlay của trình
-     * phát thì không, còn thẻ video trong bảng tin thì có.
-     */
-    private fun isInsideScrollable(node: AccessibilityNodeInfo): Boolean {
-        var current: AccessibilityNodeInfo? = node
-        var depth = 0
-        while (depth <= MAX_SCROLL_LOOKUP) {
-            val candidate = current ?: return false
-            if (candidate.isScrollable) return true
-            current = runCatching { candidate.parent }.getOrNull()
-            depth++
-        }
-        return false
     }
 
     /**
@@ -452,7 +422,6 @@ class AdSkipperService : AccessibilityService() {
         private const val MAX_NODES = 1500
         private const val MAX_DEPTH = 30
         private const val MAX_CLICKABLE_LOOKUP = 5
-        private const val MAX_SCROLL_LOOKUP = 8
         private const val MAX_LABEL_LENGTH = 40
         private const val MIN_EVENT_SCAN_GAP_MS = 120L
         private const val TAP_DURATION_MS = 60L
